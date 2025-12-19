@@ -27,6 +27,7 @@ type opts struct {
 	ArtifactConfig   *oci.ArtifactConfig
 	Tags             []string
 	AnnotationSource string
+	Annotations      map[string]string
 }
 
 // Option is a functional option for pusher.
@@ -96,4 +97,12 @@ func WithAnnotationSource(annotationSource string) Option {
 		o.AnnotationSource = annotationSource
 		return nil
 	}
+}
+
+// WithAnnotations sets the annotations option.
+func WithAnnotations(annotations map[string]string) Option {
+    return func(o *opts) error {
+        o.Annotations = annotations
+        return nil
+    }
 }

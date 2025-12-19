@@ -159,7 +159,7 @@ func (p *Pusher) Push(ctx context.Context, artifactType oci.ArtifactType,
 
 		// Now we can create manifest, using the Config descriptor and principal Layer descriptor.
 		if manifestDescs[i], err = p.packManifest(ctx, fileStore, configDesc,
-			dataDesc, platform, o.AnnotationSource); err != nil {
+			dataDesc, platform, o.AnnotationSource, o.Annotations); err != nil {
 			return nil, err
 		}
 
@@ -177,7 +177,7 @@ func (p *Pusher) Push(ctx context.Context, artifactType oci.ArtifactType,
 		if fileStore, err = file.New(""); err != nil {
 			return nil, err
 		}
-		if rootDesc, err = p.storeArtifactsIndex(ctx, fileStore, manifestDescs, o.AnnotationSource); err != nil {
+		if rootDesc, err = p.storeArtifactsIndex(ctx, fileStore, manifestDescs, o.AnnotationSource, o.Annotations); err != nil {
 			return nil, err
 		}
 	}
@@ -265,7 +265,7 @@ func (p *Pusher) storeConfigLayer(ctx context.Context, fileStore *file.Store,
 }
 
 func (p *Pusher) storeArtifactsIndex(ctx context.Context, fileStore *file.Store,
-	manifestDescs []*v1.Descriptor, annotationSource string) (*v1.Descriptor, error) {
+	manifestDescs []*v1.Descriptor, annotationSource string, extraAnnotations map[string]string) (*v1.Descriptor, error) {
 	// fat manifest
 	index := &v1.Index{
 		Versioned: specs.Versioned{SchemaVersion: 2},
@@ -276,6 +276,10 @@ func (p *Pusher) storeArtifactsIndex(ctx context.Context, fileStore *file.Store,
 		index.Annotations = make(map[string]string)
 		index.Annotations[v1.AnnotationSource] = annotationSource
 	}
+
+	for k, v := range extraAnnotations {
+        index.Annotations[k] = v
+    }
 
 	// copy manifests
 	for _, manifestDesc := range manifestDescs {
@@ -316,7 +320,7 @@ func (p *Pusher) toFileStore(ctx context.Context, fileStore *file.Store, mediaTy
 }
 
 func (p *Pusher) packManifest(ctx context.Context, fileStore *file.Store,
-	configDesc, dataDesc *v1.Descriptor, platform, annotationSource string) (*v1.Descriptor, error) {
+	configDesc, dataDesc *v1.Descriptor, platform, annotationSource string, extraAnnotations map[string]string) (*v1.Descriptor, error) {
 	// Now we can create manifest, using the Config descriptor and principal Layer descriptor.
 	// In case annotation source is passed, we put it in the ManifestAnnotations.
 	var packOptions oras.PackOptions
@@ -325,13 +329,20 @@ func (p *Pusher) packManifest(ctx context.Context, fileStore *file.Store,
 	// Always pushed as OCI Image Manifest.
 	packImageManifest := true
 
+	annotations := make(map[string]string)
+
 	if annotationSource != "" {
-		annotations := make(map[string]string)
 		annotations[v1.AnnotationSource] = annotationSource
-		packOptions = oras.PackOptions{ConfigDescriptor: configDesc, ManifestAnnotations: annotations, PackImageManifest: packImageManifest}
-	} else {
-		packOptions = oras.PackOptions{ConfigDescriptor: configDesc, PackImageManifest: packImageManifest}
 	}
+	for k, v := range extraAnnotations {
+        annotations[k] = v
+    }
+
+	packOptions = oras.PackOptions{
+        ConfigDescriptor:    configDesc,
+        ManifestAnnotations: annotations,
+        PackImageManifest:   packImageManifest,
+    }
 
 	desc, err := oras.Pack(ctx, fileStore, "", []v1.Descriptor{*dataDesc}, packOptions)
 	if err != nil {

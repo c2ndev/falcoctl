@@ -272,8 +272,11 @@ func (p *Pusher) storeArtifactsIndex(ctx context.Context, fileStore *file.Store,
 		MediaType: v1.MediaTypeImageIndex,
 	}
 
-	if annotationSource != "" {
+	if annotationSource != "" || len(extraAnnotations) > 0 {
 		index.Annotations = make(map[string]string)
+	}
+
+	if annotationSource != "" {
 		index.Annotations[v1.AnnotationSource] = annotationSource
 	}
 

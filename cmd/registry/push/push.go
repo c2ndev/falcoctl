@@ -71,6 +71,11 @@ Example - Push artifact "myrulesfile.tar.gz" of type "rulesfile" with multiple d
         falcoctl registry push --type rulesfile --version "0.1.2" localhost:5000/myrulesfile:latest myrulesfile.tar.gz \
 		--depends-on myplugin:1.2.3 \
 		--depends-on otherplugin:3.2.1
+
+Example - Push artifact "myrulesfile.tar.gz" of type "rulesfile" with custom OCI annotations:
+    falcoctl registry push --type rulesfile --version "0.1.2" localhost:5000/myrulesfile:latest myrulesfile.tar.gz \
+        --annotation org.opencontainers.image.authors="Team Name" \
+        --annotation custom.label=value
 `
 )
 
@@ -208,6 +213,10 @@ func (o *pushOptions) runPush(ctx context.Context, args []string) error {
 		ocipusher.WithTags(o.Tags...),
 		ocipusher.WithAnnotationSource(o.AnnotationSource),
 		ocipusher.WithArtifactConfig(*config),
+	}
+
+	if len(o.Annotations) > 0 {
+		opts = append(opts, ocipusher.WithAnnotations(o.Annotations))
 	}
 
 	switch o.ArtifactType {

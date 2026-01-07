@@ -37,6 +37,7 @@ type Artifact struct {
 	Tags             []string
 	AutoFloatingTags bool
 	AnnotationSource string
+	Annotations      map[string]string
 }
 
 var platformRgx = regexp.MustCompile(`^[a-z]+/[a-z0-9_]+$`)
@@ -83,6 +84,9 @@ func (art *Artifact) AddFlags(cmd *cobra.Command) error {
 
 		cmd.Flags().StringVar(&art.AnnotationSource, "annotation-source", "",
 			`set annotation source for the artifact`)
+
+		cmd.Flags().StringToStringVar(&art.Annotations, "annotation", nil,
+			`add custom OCI annotations (can be repeated). Example: --annotation key1=value1 --annotation key2=value2`)
 
 		cmd.Flags().StringVar(&art.Name, "name", "",
 			`set the unique name of the artifact (if not set, the name is extracted from the reference)`)
